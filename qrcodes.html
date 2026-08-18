@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RIZAP 内定式 謎解きタイムアタック QRコード</title>
+<style>
+  :root{{ --gold:#D4AF37; --bg:#111111; }}
+  *{{box-sizing:border-box;}}
+  body{{
+    background:#e9e9e9;
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+    margin:0; padding:24px;
+  }}
+  .toolbar{{ max-width:900px;margin:0 auto 20px auto; display:flex;justify-content:space-between;align-items:center; }}
+  .toolbar h1{{ font-size:1.1rem;color:#222;margin:0; }}
+  .toolbar button{{
+    background:linear-gradient(135deg,#F4E4BC 0%,#D4AF37 50%,#B8860B 100%);
+    border:none;border-radius:8px;padding:10px 18px;font-weight:700;cursor:pointer;
+  }}
+  .sheet{{ max-width:900px;margin:0 auto; display:grid; grid-template-columns:1fr; gap:24px; }}
+  .card{{
+    background:var(--bg); color:#fff; border-radius:20px; border:2px solid var(--gold);
+    padding:32px; display:flex; align-items:center; gap:28px;
+    page-break-after:always; break-after:page;
+  }}
+  .card:last-child{{ page-break-after:auto; break-after:auto; }}
+  .card img{{ width:220px;height:220px; background:#fff; border-radius:12px; padding:10px; flex-shrink:0; }}
+  .card .meta{{ flex:1; }}
+  .card .room-label{{ font-size:.8rem;letter-spacing:.3em;color:#D4AF37;font-weight:700;margin-bottom:8px; }}
+  .card .room-name{{
+    font-size:1.9rem;font-weight:900;margin-bottom:14px;
+    background:linear-gradient(135deg,#F4E4BC 0%,#D4AF37 45%,#B8860B 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }}
+  .card .instruction{{ font-size:.95rem;color:rgba(255,255,255,.75);line-height:1.7; }}
+  .card .url-fallback{{ margin-top:14px;font-size:.7rem;color:rgba(255,255,255,.35);word-break:break-all; }}
+  @media print{{
+    body{{background:#fff;padding:0;}}
+    .toolbar{{display:none;}}
+    .card{{border-radius:0;margin:0;min-height:100vh;}}
+  }}
+  @media (max-width:640px){{ .card{{flex-direction:column;text-align:center;}} }}
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <h1>RIZAP 内定式 謎解きタイムアタック QRコード（印刷用）</h1>
+  <button onclick="window.print()">印刷する</button>
+</div>
+<div class="sheet">
+  <div class="card">
+    <img src="data:image/png;base64,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" alt="アプリを開く QRコード">
+    <div class="meta">
+      <div class="room-label">START</div>
+      <div class="room-name">アプリを開く（受付・配布用）</div>
+      <div class="instruction">
+        このQRコードをスマートフォンで読み取ると、謎解きアプリのログイン画面（チーム・プレイヤー選択）が開きます。<br>
+        受付や事前配布のご案内など、部屋を指定せず「まずアプリを開いてもらう」場面で使ってください。
+      </div>
+      <div class="url-fallback">https://kanomiyagi-stack.github.io/-naiteishiki-timeattack/</div>
+    </div>
+  </div>
+  <div class="card">
+    <img src="data:image/png;base64,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" alt="① プレゼンルーム QRコード">
+    <div class="meta">
+      <div class="room-label">ROOM</div>
+      <div class="room-name">① プレゼンルーム</div>
+      <div class="instruction">
+        このQRコードをスマートフォンで読み取ると、謎解きアプリの該当ルームに直接ジャンプします。<br>
+        カメラが使えない場合は、アプリの「QRコードをスキャン」画面の下部にある入力欄に<br>
+        <b>1</b> と入力してください。
+      </div>
+      <div class="url-fallback">https://kanomiyagi-stack.github.io/-naiteishiki-timeattack/?room=1</div>
+    </div>
+  </div>
+  <div class="card">
+    <img src="data:image/png;base64,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" alt="② オープンスペース QRコード">
+    <div class="meta">
+      <div class="room-label">ROOM</div>
+      <div class="room-name">② オープンスペース</div>
+      <div class="instruction">
+        このQRコードをスマートフォンで読み取ると、謎解きアプリの該当ルームに直接ジャンプします。<br>
+        カメラが使えない場合は、アプリの「QRコードをスキャン」画面の下部にある入力欄に<br>
+        <b>2</b> と入力してください。
+      </div>
+      <div class="url-fallback">https://kanomiyagi-stack.github.io/-naiteishiki-timeattack/?room=2</div>
+    </div>
+  </div>
+  <div class="card">
+    <img src="data:image/png;base64,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" alt="③ 店舗エリア QRコード">
+    <div class="meta">
+      <div class="room-label">ROOM</div>
+      <div class="room-name">③ 店舗エリア</div>
+      <div class="instruction">
+        このQRコードをスマートフォンで読み取ると、謎解きアプリの該当ルームに直接ジャンプします。<br>
+        カメラが使えない場合は、アプリの「QRコードをスキャン」画面の下部にある入力欄に<br>
+        <b>3</b> と入力してください。
+      </div>
+      <div class="url-fallback">https://kanomiyagi-stack.github.io/-naiteishiki-timeattack/?room=3</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
