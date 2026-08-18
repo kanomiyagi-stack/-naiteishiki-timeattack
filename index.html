@@ -426,6 +426,20 @@ document.querySelectorAll(".player-btn").forEach(function(btn){
 function updateStartButton(){
   document.getElementById("btn-game-start").disabled = !(selectedTeam && selectedPlayer);
 }
+function showLoginScreen(preselectTeam, preselectPlayer){
+  selectedTeam = preselectTeam || null;
+  selectedPlayer = preselectPlayer ? String(preselectPlayer) : null;
+  document.querySelectorAll(".team-btn").forEach(function(b){
+    const active = b.getAttribute("data-team") === selectedTeam;
+    b.classList.toggle("btn-gold", active); b.classList.toggle("btn-ghost", !active);
+  });
+  document.querySelectorAll(".player-btn").forEach(function(b){
+    const active = b.getAttribute("data-player") === selectedPlayer;
+    b.classList.toggle("btn-gold", active); b.classList.toggle("btn-ghost", !active);
+  });
+  updateStartButton();
+  showScreen("screen-login");
+}
 function loginAs(team, player){
   state.currentTeam = team;
   state.currentPlayer = String(player);
@@ -439,10 +453,7 @@ document.getElementById("btn-game-start").addEventListener("click", function(){
   showScreen("screen-dashboard");
 });
 document.getElementById("btn-change-team").addEventListener("click", function(){
-  selectedTeam = null; selectedPlayer = null;
-  document.querySelectorAll(".team-btn,.player-btn").forEach(function(b){ b.classList.remove("btn-gold"); b.classList.add("btn-ghost"); });
-  updateStartButton();
-  showScreen("screen-login");
+  showLoginScreen(state.currentTeam, state.currentPlayer);
 });
 
 /* ===================== ② ダッシュボード ===================== */
@@ -898,12 +909,13 @@ function init(){
 
   if(mode === "admin"){ enterAdmin(); return; }
 
-  if(teamParam && playerParam && TEAM_ORDER.indexOf(teamParam.toUpperCase()) !== -1){
+  const hasQuickLogin = teamParam && playerParam && TEAM_ORDER.indexOf(teamParam.toUpperCase()) !== -1;
+  if(hasQuickLogin){
     loginAs(teamParam.toUpperCase(), playerParam);
   }
 
   if(!state.currentTeam || !state.currentPlayer){
-    showScreen("screen-login");
+    showLoginScreen();
     return;
   }
 
@@ -912,6 +924,18 @@ function init(){
     openPuzzle(Number(roomParam));
     return;
   }
+
+  if(hasQuickLogin){
+    renderDashboard();
+    showScreen("screen-dashboard");
+    return;
+  }
+
+  if(!roomParam){
+    showLoginScreen(state.currentTeam, state.currentPlayer);
+    return;
+  }
+
   renderDashboard();
   showScreen("screen-dashboard");
 }
