@@ -199,6 +199,15 @@
         <button id="btn-admin-reset-config" class="btn-ghost rounded-lg px-3 py-1 text-xs">全設定をデフォルトに戻す</button>
       </div>
       <div id="admin-room-forms" class="space-y-4"></div>
+
+      <div class="border-t border-white/10 mt-4 pt-4">
+        <p class="text-white/40 text-xs leading-relaxed mb-3">
+          ここでの編集は<b>この端末だけ</b>に保存されます。全チームの端末に反映するには、下のボタンで編集済みの
+          index.htmlをダウンロードし、GitHubに再アップロードしてください。
+        </p>
+        <button id="btn-admin-export-html" class="btn-gold w-full rounded-lg py-3">編集内容を反映したindex.htmlをダウンロード</button>
+        <div id="admin-export-status" class="text-white/50 text-xs text-center mt-2 hidden"></div>
+      </div>
     </div>
 
     <div class="card p-4 mb-5">
@@ -286,6 +295,7 @@ const STATE_KEY = "rizap_timeattack_state_v1";
 const ROOM_ORDER = [1,2,3];
 const TEAM_ORDER = ["A","B","C","D"];
 
+/* DEFAULT_CONFIG_START */
 const DEFAULT_CONFIG = {
   rooms: {
     1: {
@@ -323,6 +333,7 @@ const DEFAULT_CONFIG = {
     }
   }
 };
+/* DEFAULT_CONFIG_END */
 
 /* ===================== CONFIG（管理者が編集可能） ===================== */
 function loadConfig(){
@@ -840,6 +851,40 @@ document.getElementById("btn-admin-reset-config").addEventListener("click", func
   CONFIG = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
   saveConfig();
   renderAdmin();
+});
+document.getElementById("btn-admin-export-html").addEventListener("click", async function(){
+  const statusEl = document.getElementById("admin-export-status");
+  statusEl.classList.remove("hidden");
+  statusEl.textContent = "生成中…";
+  try{
+    const res = await fetch(window.location.pathname + "?raw=" + Date.now(), { cache: "no-store" });
+    if(!res.ok) throw new Error("fetch failed: " + res.status);
+    const originalHtml = await res.text();
+    const startMarker = "/* DEFAULT_CONFIG_START */";
+    const endMarker = "/* DEFAULT_CONFIG_END */";
+    const startIdx = originalHtml.indexOf(startMarker);
+    const endIdx = originalHtml.indexOf(endMarker);
+    if(startIdx === -1 || endIdx === -1 || endIdx < startIdx){
+      throw new Error("マーカーが見つかりません");
+    }
+    const replacement = startMarker + "\nconst DEFAULT_CONFIG = " + JSON.stringify(CONFIG, null, 2) + ";\n";
+    const newHtml =
+      originalHtml.slice(0, startIdx) +
+      replacement +
+      originalHtml.slice(endIdx);
+    const blob = new Blob([newHtml], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "index.html";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+    statusEl.textContent = "ダウンロードしました。GitHubに再アップロードしてください。";
+  }catch(e){
+    statusEl.textContent = "生成に失敗しました: " + e.message;
+  }
 });
 document.getElementById("btn-admin-force-clear").addEventListener("click", function(){
   const t = document.getElementById("admin-force-team").value;
