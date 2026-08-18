@@ -301,10 +301,10 @@ const DEFAULT_CONFIG = {
     1: {
       title: "① プレゼンルーム",
       clues: {
-        1: "誰かが持っている暗号文字列のうち、<span style=\"color:#ff4444;font-weight:900;\">赤色の文字だけ</span>を残して読んでもらおう。あなた自身は暗号文字列を持っていない。",
-        2: "奇数番目の文字を削除せよ。",
-        3: "『R・I・Z・A・P』に含まれる文字は消すな。",
-        4: "暗号文字列：<br><span style=\"font-size:1.4rem;letter-spacing:.3em;\"><span style=\"color:#ff4444;font-weight:900;\">R</span> F A T <span style=\"color:#ff4444;font-weight:900;\">I</span> <span style=\"color:#ff4444;font-weight:900;\">Z</span> S T <span style=\"color:#ff4444;font-weight:900;\">A</span> <span style=\"color:#ff4444;font-weight:900;\">P</span> O N</span>"
+        1: "誰かが持っている暗号文字列のうち、<span style=\"color:#ff4444;font-weight:900;\">赤色の文字だけ</span>を抜き出して読み上げてもらおう。あなた自身は暗号文字列を持っていない。",
+        2: "誰かが赤色の文字だけを読み上げたら、その並びの<b>奇数番目の文字を消して</b>残った文字だけを順番に並べよ。",
+        3: "そうして残った文字は、まだ答えではない。それぞれの文字を<b>アルファベット順で1つ前の文字に置き換えよ</b>（例：B→A、A→Z）。それが答えだ。",
+        4: "暗号文字列：<br><span style=\"font-size:1.3rem;letter-spacing:.25em;\">M <span style=\"color:#ff4444;font-weight:900;\">X</span> O <span style=\"color:#ff4444;font-weight:900;\">S</span> H <span style=\"color:#ff4444;font-weight:900;\">Y</span> N <span style=\"color:#ff4444;font-weight:900;\">J</span> L <span style=\"color:#ff4444;font-weight:900;\">W</span> F <span style=\"color:#ff4444;font-weight:900;\">A</span> D <span style=\"color:#ff4444;font-weight:900;\">C</span> T <span style=\"color:#ff4444;font-weight:900;\">B</span> V <span style=\"color:#ff4444;font-weight:900;\">K</span> G <span style=\"color:#ff4444;font-weight:900;\">Q</span></span>"
       },
       answer: "RIZAP",
       keyword: "PROVE"
@@ -315,9 +315,9 @@ const DEFAULT_CONFIG = {
         1: "【自動販売機】のカード『A』の数字を確認せよ。",
         2: "【観葉植物】のカード『B』の数字を確認せよ。",
         3: "【ソファ】のカード『C』の数字を確認せよ。",
-        4: "計算式: (A + B) × C"
+        4: "計算式：(A × C) − B<br>ただし、答えが2桁の数字になる場合は、その2つの数字を足し合わせた1桁の数字を最終的な答えとせよ。"
       },
-      answer: "16",
+      answer: "9",
       keyword: "THAT PEOPLE"
     },
     3: {
@@ -326,9 +326,9 @@ const DEFAULT_CONFIG = {
         1: "【チェストプレス】の重さ(kg)を調べよ。",
         2: "【トレッドミル】の最大傾斜(%)を調べよ。",
         3: "【ダンベル】最上段の一番軽い重さ(kg)を調べよ。",
-        4: "計算式: (チェストプレス + トレッドミル) − ダンベル"
+        4: "計算式：（チェストプレスの重さ ÷ ダンベルの重さ）＋ トレッドミルの傾斜<br>割り切れない場合は、割り算の答えの小数点以下を切り捨ててから足すこと。"
       },
-      answer: "33",
+      answer: "23",
       keyword: "CAN CHANGE"
     }
   }
