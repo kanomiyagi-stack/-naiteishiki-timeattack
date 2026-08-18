@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>RIZAP 内定式 謎解きタイムアタック</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root{ --gold:#D4AF37; --gold-light:#F4E4BC; --bg:#111111; --bg-card:#1b1b1b; --bg-card2:#222222; }
+  *{-webkit-tap-highlight-color:transparent; box-sizing:border-box;}
+  html,body{
+    background:var(--bg); color:#fff;
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+    overscroll-behavior:none; -webkit-font-smoothing:antialiased; margin:0;
+  }
+  .gold-text{ background:linear-gradient(135deg,#F4E4BC 0%,#D4AF37 45%,#B8860B 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .gold-border{ border:1px solid rgba(212,175,55,.45); }
+  .gold-glow{ box-shadow:0 0 24px rgba(212,175,55,.25), inset 0 0 0 1px rgba(212,175,55,.3); }
+  .btn-gold{ background:linear-gradient(135deg,#F4E4BC 0%,#D4AF37 50%,#B8860B 100%); color:#111; font-weight:700; letter-spacing:.05em; transition:transform .12s ease, filter .12s ease; }
+  .btn-gold:active{ transform:scale(.97); }
+  .btn-gold:disabled{ filter:grayscale(.6) opacity(.4); pointer-events:none; }
+  .btn-ghost{ background:transparent; border:1px solid rgba(255,255,255,.25); color:#fff; transition:all .15s ease; }
+  .btn-ghost:active{ background:rgba(255,255,255,.08); transform:scale(.97); }
+  .btn-ghost.active-tab{ background:linear-gradient(135deg,#F4E4BC 0%,#D4AF37 50%,#B8860B 100%); color:#111; border-color:transparent; }
+  .card{ background:var(--bg-card); border:1px solid rgba(255,255,255,.08); border-radius:18px; }
+  .tile{ background:var(--bg-card2); border:1px solid rgba(212,175,55,.3); border-radius:12px; }
+  .tile.locked{ border:1px solid rgba(255,255,255,.1); opacity:.5; }
+  .screen{ animation:fadeIn .35s ease both; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+  .shake{ animation:shake .4s ease; }
+  @keyframes shake{ 10%,90%{transform:translateX(-3px);} 20%,80%{transform:translateX(6px);} 30%,50%,70%{transform:translateX(-10px);} 40%,60%{transform:translateX(10px);} }
+  .pulse-gold{ animation:pulseGold 2.2s ease-in-out infinite; }
+  @keyframes pulseGold{ 0%,100%{box-shadow:0 0 10px rgba(212,175,55,.3);} 50%{box-shadow:0 0 28px rgba(212,175,55,.65);} }
+  .letter-spaced{ letter-spacing:.25em; }
+  .hidden{ display:none !important; }
+  #confetti-canvas{ position:fixed; inset:0; pointer-events:none; z-index:80; }
+  .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.78); backdrop-filter:blur(2px); display:flex; align-items:center; justify-content:center; z-index:70; padding:20px; animation:fadeIn .2s ease both; overflow-y:auto; }
+  input[type=text]::placeholder, textarea::placeholder{ color:rgba(255,255,255,.35); }
+  ::selection{ background:#D4AF37; color:#111; }
+  .scan-line{
+    position:absolute;left:4%;right:4%;height:2px;
+    background:linear-gradient(90deg,transparent,#D4AF37,transparent);
+    animation:scan 1.8s linear infinite;
+  }
+  @keyframes scan{ 0%{top:8%;} 100%{top:92%;} }
+  .timer-digit{ font-variant-numeric:tabular-nums; }
+  table.admin-table{ border-collapse:collapse; width:100%; font-size:.8rem; }
+  table.admin-table th, table.admin-table td{ border:1px solid rgba(255,255,255,.12); padding:6px 8px; text-align:center; }
+  table.admin-table th{ background:rgba(212,175,55,.15); color:#F4E4BC; }
+  .field-label{ font-size:.7rem; color:rgba(255,255,255,.5); letter-spacing:.05em; margin-bottom:4px; display:block; }
+  textarea, input[type=text], select{ background:rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.2); border-radius:10px; color:#fff; padding:8px 10px; width:100%; }
+  textarea:focus, input[type=text]:focus, select:focus{ outline:none; border-color:var(--gold); }
+</style>
+</head>
+<body class="min-h-screen">
+
+<canvas id="confetti-canvas"></canvas>
+
+<header class="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3 bg-black/70 backdrop-blur border-b border-white/10">
+  <span class="text-xs tracking-[.25em] text-white/50">RIZAP 内定式 TIME ATTACK</span>
+  <div id="logo-tap" class="gold-text font-black text-lg tracking-wide select-none cursor-pointer px-2 py-1">RIZAP</div>
+</header>
+<div class="h-14"></div>
+
+<main class="max-w-md mx-auto px-4 pb-16">
+
+  <!-- ============ ① ログイン画面 ============ -->
+  <section id="screen-login" class="screen hidden pt-6">
+    <div class="text-center mb-8">
+      <div class="text-3xl font-black gold-text tracking-wide mb-2">MISSION BRIEFING</div>
+      <p class="text-white/60 text-sm leading-relaxed">3つの部屋の謎を解き、<br>最速でキーワードを完成させろ。</p>
+    </div>
+    <div class="card p-5 mb-4">
+      <div class="text-xs text-white/50 mb-3 tracking-widest">TEAM を選択</div>
+      <div class="grid grid-cols-2 gap-3" id="team-select-grid">
+        <button class="team-btn btn-ghost rounded-xl py-4 font-bold" data-team="A">Team A</button>
+        <button class="team-btn btn-ghost rounded-xl py-4 font-bold" data-team="B">Team B</button>
+        <button class="team-btn btn-ghost rounded-xl py-4 font-bold" data-team="C">Team C</button>
+        <button class="team-btn btn-ghost rounded-xl py-4 font-bold" data-team="D">Team D</button>
+      </div>
+    </div>
+    <div class="card p-5 mb-6">
+      <div class="text-xs text-white/50 mb-3 tracking-widest">PLAYER 番号を選択</div>
+      <div class="grid grid-cols-4 gap-3" id="player-select-grid">
+        <button class="player-btn btn-ghost rounded-xl py-4 font-bold" data-player="1">P1</button>
+        <button class="player-btn btn-ghost rounded-xl py-4 font-bold" data-player="2">P2</button>
+        <button class="player-btn btn-ghost rounded-xl py-4 font-bold" data-player="3">P3</button>
+        <button class="player-btn btn-ghost rounded-xl py-4 font-bold" data-player="4">P4</button>
+      </div>
+    </div>
+    <button id="btn-game-start" class="btn-gold w-full rounded-xl py-4 text-lg" disabled>ゲームスタート</button>
+    <p class="text-white/30 text-xs text-center mt-3">スタートするとタイマーが動き出します</p>
+  </section>
+
+  <!-- ============ ② メインダッシュボード ============ -->
+  <section id="screen-dashboard" class="screen hidden pt-6">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <div class="text-2xl font-black gold-text" id="dash-team-name">Team A</div>
+        <div class="text-white/50 text-sm" id="dash-player-name">Player 1</div>
+      </div>
+      <button id="btn-change-team" class="btn-ghost rounded-lg px-3 py-2 text-xs">チーム変更</button>
+    </div>
+
+    <div class="card gold-border p-5 mb-4 text-center">
+      <div class="text-xs text-white/50 tracking-widest mb-1">ELAPSED TIME</div>
+      <div class="text-4xl font-black timer-digit gold-text" id="dash-timer">00:00</div>
+    </div>
+
+    <div class="card p-5 mb-4">
+      <div class="text-xs text-white/50 tracking-widest mb-3">獲得済みキーワード</div>
+      <div class="grid grid-cols-1 gap-2" id="keyword-list"></div>
+    </div>
+
+    <button id="btn-open-scan" class="btn-gold w-full rounded-xl py-4 mb-4 flex items-center justify-center gap-2 pulse-gold">
+      <span>📷</span><span>QRコードをスキャンして部屋へ</span>
+    </button>
+
+    <button id="btn-goto-final" class="btn-gold w-full rounded-xl py-4 text-lg" disabled>最終問題に挑む</button>
+    <p class="text-white/30 text-xs text-center mt-2" id="final-lock-note">3部屋すべてクリアで解放されます</p>
+  </section>
+
+  <!-- ============ ③ 部屋別謎解き画面 ============ -->
+  <section id="screen-puzzle" class="screen hidden pt-6">
+    <button id="btn-puzzle-back" class="btn-ghost rounded-lg px-3 py-2 text-xs mb-4">← ダッシュボードに戻る</button>
+
+    <div class="card p-5 mb-4">
+      <div class="text-xl font-black gold-text mb-1" id="puzzle-title">部屋タイトル</div>
+      <div class="text-white/40 text-xs mb-4">4人で情報を持ち寄って答えを導こう</div>
+
+      <div class="rounded-xl bg-black/40 border border-white/10 p-4 mb-4">
+        <div class="text-xs text-white/40 mb-2" id="puzzle-clue-label">Player 1 の情報</div>
+        <p class="text-white leading-relaxed whitespace-pre-line" id="puzzle-clue-text">クルー</p>
+      </div>
+
+      <div id="puzzle-note-nonp4" class="text-white/40 text-xs mb-4 hidden">この情報を他のメンバーに伝えてください。解答はPlayer 4のスマートフォンから送信します。</div>
+
+      <div id="puzzle-answer-block">
+        <input id="puzzle-answer-input" type="text" placeholder="解答を入力" class="w-full mb-2">
+        <div id="puzzle-error" class="text-red-400 text-sm mb-3 hidden">思考をチェンジしよう！</div>
+        <button id="btn-puzzle-submit" class="btn-gold w-full rounded-xl py-4">送信</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ④ 最終問題画面 ============ -->
+  <section id="screen-final" class="screen hidden pt-6">
+    <button id="btn-final-back" class="btn-ghost rounded-lg px-3 py-2 text-xs mb-4">← ダッシュボードに戻る</button>
+    <div class="text-center mb-6">
+      <div class="text-2xl font-black gold-text mb-2">FINAL MISSION</div>
+      <p class="text-white/50 text-sm leading-relaxed">3つのキーワードを組み合わせた<br>英語のフレーズを完成させろ。</p>
+    </div>
+    <div class="card p-5 mb-4">
+      <div class="grid grid-cols-1 gap-2 mb-4" id="final-keyword-recap"></div>
+      <input id="final-answer-input" type="text" placeholder="例：PROVE THAT PEOPLE CAN CHANGE" class="w-full mb-2">
+      <div id="final-error" class="text-red-400 text-sm mb-3 hidden">思考をチェンジしよう！まだ言葉が完成していません。</div>
+      <button id="btn-final-submit" class="btn-gold w-full rounded-xl py-4 text-lg">解答する</button>
+    </div>
+  </section>
+
+  <!-- ============ ⑤ ゴール画面 ============ -->
+  <section id="screen-complete" class="screen hidden pt-10 text-center">
+    <div class="text-sm tracking-[.4em] text-white/50 mb-3">MISSION COMPLETE</div>
+    <div class="text-3xl font-black gold-text mb-6">MISSION COMPLETE!</div>
+    <div class="card gold-glow p-6 mb-5">
+      <div class="text-xs text-white/50 tracking-widest mb-2">CLEAR TIME</div>
+      <div class="text-4xl font-black gold-text" id="complete-time">18分42秒</div>
+    </div>
+    <div class="card p-5 mb-6 text-left border-2" style="border-color:var(--gold);">
+      <div class="text-xs text-red-300 font-bold tracking-widest mb-2">【プレゼント獲得チャンス！】</div>
+      <p class="text-white/85 leading-relaxed text-sm">
+        この英語<span class="gold-text font-bold" id="complete-phrase">PROVE THAT PEOPLE CAN CHANGE</span>が表す、RIZAPグループの「日本語の企業理念」をMCに伝えて特別景品をゲットせよ！
+      </p>
+    </div>
+    <button id="btn-complete-back" class="btn-ghost rounded-xl px-8 py-3">ダッシュボードに戻る</button>
+  </section>
+
+  <!-- ============ ADMIN VIEW ============ -->
+  <section id="screen-admin" class="screen hidden pt-6 pb-10">
+    <div class="flex items-center justify-between mb-4">
+      <div class="text-2xl font-black gold-text">ADMIN PANEL</div>
+      <button id="btn-admin-back" class="btn-ghost rounded-lg px-3 py-2 text-xs">プレイヤー画面に戻る</button>
+    </div>
+    <p class="text-white/40 text-xs mb-5">※ この端末のローカルデータ（localStorage）のみを表示・編集します。他端末のデータは操作できません。</p>
+
+    <div class="card p-4 mb-5 overflow-x-auto">
+      <div class="text-xs text-white/50 tracking-widest mb-3">① 全チーム進捗モニタリング</div>
+      <table class="admin-table">
+        <thead>
+          <tr><th>Team</th><th>状態</th><th>経過時間</th><th>部屋1</th><th>部屋2</th><th>部屋3</th><th>獲得キーワード</th><th>クリアタイム</th></tr>
+        </thead>
+        <tbody id="admin-monitor-body"></tbody>
+      </table>
+    </div>
+
+    <div class="card p-4 mb-5">
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-xs text-white/50 tracking-widest">② データ編集機能</div>
+        <button id="btn-admin-reset-config" class="btn-ghost rounded-lg px-3 py-1 text-xs">全設定をデフォルトに戻す</button>
+      </div>
+      <div id="admin-room-forms" class="space-y-4"></div>
+    </div>
+
+    <div class="card p-4 mb-5">
+      <div class="text-xs text-white/50 tracking-widest mb-3">③ 運営コントロール</div>
+
+      <div class="mb-4">
+        <div class="text-sm font-bold mb-2">特定チームの部屋を強制クリア（デモ・救援用）</div>
+        <div class="grid grid-cols-3 gap-2 mb-2">
+          <select id="admin-force-team">
+            <option value="A">Team A</option><option value="B">Team B</option>
+            <option value="C">Team C</option><option value="D">Team D</option>
+          </select>
+          <select id="admin-force-room">
+            <option value="1">部屋1</option><option value="2">部屋2</option><option value="3">部屋3</option>
+          </select>
+          <button id="btn-admin-force-clear" class="btn-gold rounded-lg text-sm">強制クリア</button>
+        </div>
+      </div>
+
+      <button id="btn-admin-reset-all" class="w-full rounded-xl py-3 bg-red-900/60 border border-red-500/40 text-red-200 font-bold mb-2">全チームデータをリセット（タイマー初期化）</button>
+    </div>
+
+    <div class="card p-4">
+      <div class="text-xs text-white/50 tracking-widest mb-3">④ テスト用URL一覧</div>
+      <textarea id="admin-url-list" readonly rows="10" class="text-xs mb-3"></textarea>
+      <button id="btn-admin-copy-urls" class="btn-ghost w-full rounded-xl py-3">全部コピーする</button>
+      <div id="admin-copy-status" class="text-green-400 text-xs text-center mt-2 hidden">コピーしました</div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ QRスキャン モーダル ============ -->
+<div id="modal-scan" class="modal-backdrop hidden">
+  <div class="card gold-glow w-full max-w-sm p-5 relative">
+    <button class="modal-close absolute top-3 right-4 text-white/50 text-2xl leading-none" data-close="modal-scan">&times;</button>
+    <div class="text-lg font-bold gold-text mb-3">QRコードをスキャン</div>
+
+    <div id="scan-camera-wrap" class="relative rounded-xl overflow-hidden bg-black mb-3 hidden" style="aspect-ratio:1/1;">
+      <video id="scan-video" class="w-full h-full object-cover" playsinline muted></video>
+      <div class="scan-line"></div>
+    </div>
+    <div id="scan-camera-status" class="text-white/40 text-xs mb-3"></div>
+
+    <button id="btn-start-camera" class="btn-ghost w-full rounded-xl py-3 mb-4">📷 カメラを起動する</button>
+
+    <div class="text-xs text-white/40 mb-2 tracking-widest">カメラが使えない場合はコードを入力</div>
+    <div class="flex gap-2">
+      <input id="scan-manual-input" type="text" placeholder="例：1" class="flex-1">
+      <button id="btn-scan-manual-submit" class="btn-gold rounded-xl px-4">決定</button>
+    </div>
+    <div id="scan-error" class="text-red-400 text-xs mt-2 hidden">無効なコードです。もう一度確認してください。</div>
+  </div>
+</div>
+
+<!-- ============ キーワード獲得 モーダル ============ -->
+<div id="modal-keyword" class="modal-backdrop hidden">
+  <div class="card gold-glow w-full max-w-sm p-6 text-center relative">
+    <div class="text-sm text-white/50 tracking-widest mb-2">KEYWORD GET !!</div>
+    <div class="text-3xl font-black gold-text letter-spaced mb-4" id="keyword-modal-word">WORD</div>
+    <p class="text-white/70 text-sm mb-5" id="keyword-modal-sub">キーワードを獲得しました。</p>
+    <button id="btn-keyword-modal-close" class="btn-gold w-full rounded-xl py-3">ダッシュボードに戻る</button>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ===================== 設定・状態キー ===================== */
+const CONFIG_KEY = "rizap_timeattack_config_v1";
+const STATE_KEY = "rizap_timeattack_state_v1";
+const ROOM_ORDER = [1,2,3];
+const TEAM_ORDER = ["A","B","C","D"];
+
+const DEFAULT_CONFIG = {
+  rooms: {
+    1: {
+      title: "① プレゼンルーム",
+      clues: {
+        1: "赤色の文字だけを残せ。",
+        2: "奇数番目の文字を削除せよ。",
+        3: "『R・I・Z・A・P』に含まれる文字は消すな。",
+        4: "暗号文字列: R F A T I Z S T A P O N"
+      },
+      answer: "RIZAP",
+      keyword: "PROVE"
+    },
+    2: {
+      title: "② オープンスペース",
+      clues: {
+        1: "【自動販売機】のカード『A』の数字を確認せよ。",
+        2: "【観葉植物】のカード『B』の数字を確認せよ。",
+        3: "【ソファ】のカード『C』の数字を確認せよ。",
+        4: "計算式: (A + B) × C"
+      },
+      answer: "16",
+      keyword: "THAT PEOPLE"
+    },
+    3: {
+      title: "③ 店舗エリア",
+      clues: {
+        1: "【チェストプレス】の重さ(kg)を調べよ。",
+        2: "【トレッドミル】の最大傾斜(%)を調べよ。",
+        3: "【ダンベル】最上段の一番軽い重さ(kg)を調べよ。",
+        4: "計算式: (チェストプレス + トレッドミル) − ダンベル"
+      },
+      answer: "33",
+      keyword: "CAN CHANGE"
+    }
+  }
+};
+
+/* ===================== CONFIG（管理者が編集可能） ===================== */
+function loadConfig(){
+  try{
+    const raw = localStorage.getItem(CONFIG_KEY);
+    if(!raw) return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+    const parsed = JSON.parse(raw);
+    if(!parsed.rooms) return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+    return parsed;
+  }catch(e){
+    return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+  }
+}
+function saveConfig(){ localStorage.setItem(CONFIG_KEY, JSON.stringify(CONFIG)); }
+let CONFIG = loadConfig();
+
+function getFinalPhrase(){
+  return ROOM_ORDER.map(function(r){ return CONFIG.rooms[r].keyword; }).join(" ");
+}
+
+/* ===================== STATE（各チームの進行状況） ===================== */
+function defaultTeamState(){
+  return { startTime:null, endTime:null, solvedRooms:[], keywords:{} };
+}
+function defaultState(){
+  const teams = {};
+  TEAM_ORDER.forEach(function(t){ teams[t] = defaultTeamState(); });
+  return { currentTeam:null, currentPlayer:null, teams:teams };
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STATE_KEY);
+    if(!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    const base = defaultState();
+    const merged = Object.assign(base, parsed);
+    merged.teams = Object.assign(base.teams, parsed.teams || {});
+    TEAM_ORDER.forEach(function(t){
+      merged.teams[t] = Object.assign(defaultTeamState(), merged.teams[t] || {});
+    });
+    return merged;
+  }catch(e){
+    return defaultState();
+  }
+}
+function saveState(){ localStorage.setItem(STATE_KEY, JSON.stringify(state)); }
+let state = loadState();
+
+/* ===================== 画面切り替え ===================== */
+const screens = ["screen-login","screen-dashboard","screen-puzzle","screen-final","screen-complete","screen-admin"];
+function showScreen(id){
+  screens.forEach(function(s){ document.getElementById(s).classList.toggle("hidden", s !== id); });
+  window.scrollTo(0,0);
+}
+function openModal(id){ document.getElementById(id).classList.remove("hidden"); }
+function closeModal(id){ document.getElementById(id).classList.add("hidden"); }
+document.querySelectorAll(".modal-close").forEach(function(btn){
+  btn.addEventListener("click", function(){
+    const id = btn.getAttribute("data-close");
+    closeModal(id);
+    if(id === "modal-scan") stopCamera();
+  });
+});
+
+/* ===================== ユーティリティ ===================== */
+function normalize(s){
+  return String(s == null ? "" : s).normalize("NFKC").toUpperCase().replace(/\s+/g,"");
+}
+function formatMMSS(ms){
+  const totalSec = Math.max(0, Math.floor(ms/1000));
+  const m = Math.floor(totalSec/60), s = totalSec%60;
+  return String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
+}
+function formatJP(ms){
+  const totalSec = Math.max(0, Math.floor(ms/1000));
+  const m = Math.floor(totalSec/60), s = totalSec%60;
+  return m + "分" + s + "秒";
+}
+
+/* ===================== ① ログイン画面 ===================== */
+let selectedTeam = null, selectedPlayer = null;
+
+document.querySelectorAll(".team-btn").forEach(function(btn){
+  btn.addEventListener("click", function(){
+    selectedTeam = btn.getAttribute("data-team");
+    document.querySelectorAll(".team-btn").forEach(function(b){
+      b.classList.toggle("btn-gold", b === btn); b.classList.toggle("btn-ghost", b !== btn);
+    });
+    updateStartButton();
+  });
+});
+document.querySelectorAll(".player-btn").forEach(function(btn){
+  btn.addEventListener("click", function(){
+    selectedPlayer = btn.getAttribute("data-player");
+    document.querySelectorAll(".player-btn").forEach(function(b){
+      b.classList.toggle("btn-gold", b === btn); b.classList.toggle("btn-ghost", b !== btn);
+    });
+    updateStartButton();
+  });
+});
+function updateStartButton(){
+  document.getElementById("btn-game-start").disabled = !(selectedTeam && selectedPlayer);
+}
+function loginAs(team, player){
+  state.currentTeam = team;
+  state.currentPlayer = String(player);
+  if(!state.teams[team]) state.teams[team] = defaultTeamState();
+  if(!state.teams[team].startTime) state.teams[team].startTime = Date.now();
+  saveState();
+}
+document.getElementById("btn-game-start").addEventListener("click", function(){
+  loginAs(selectedTeam, selectedPlayer);
+  renderDashboard();
+  showScreen("screen-dashboard");
+});
+document.getElementById("btn-change-team").addEventListener("click", function(){
+  selectedTeam = null; selectedPlayer = null;
+  document.querySelectorAll(".team-btn,.player-btn").forEach(function(b){ b.classList.remove("btn-gold"); b.classList.add("btn-ghost"); });
+  updateStartButton();
+  showScreen("screen-login");
+});
+
+/* ===================== ② ダッシュボード ===================== */
+function renderDashboard(){
+  const team = state.currentTeam;
+  const teamState = state.teams[team];
+  document.getElementById("dash-team-name").textContent = "Team " + team;
+  document.getElementById("dash-player-name").textContent = "Player " + state.currentPlayer;
+
+  const list = document.getElementById("keyword-list");
+  list.innerHTML = "";
+  ROOM_ORDER.forEach(function(r){
+    const solved = teamState.solvedRooms.indexOf(r) !== -1;
+    const tile = document.createElement("div");
+    tile.className = "tile " + (solved ? "" : "locked") + " p-3 flex items-center justify-between";
+    tile.innerHTML =
+      '<div class="text-xs text-white/50">部屋' + r + '</div>' +
+      '<div class="font-black tracking-widest ' + (solved ? "gold-text" : "text-white/30") + '">' +
+      (solved ? teamState.keywords[r] : "???") + '</div>';
+    list.appendChild(tile);
+  });
+
+  const allSolved = teamState.solvedRooms.length >= ROOM_ORDER.length;
+  const finalBtn = document.getElementById("btn-goto-final");
+  finalBtn.disabled = !allSolved;
+  document.getElementById("final-lock-note").classList.toggle("hidden", allSolved);
+
+  updateDashTimer();
+}
+function updateDashTimer(){
+  const el = document.getElementById("dash-timer");
+  if(!el || document.getElementById("screen-dashboard").classList.contains("hidden")) return;
+  const teamState = state.teams[state.currentTeam];
+  if(!teamState || !teamState.startTime){ el.textContent = "00:00"; return; }
+  const end = teamState.endTime || Date.now();
+  el.textContent = formatMMSS(end - teamState.startTime);
+}
+setInterval(updateDashTimer, 1000);
+
+document.getElementById("btn-open-scan").addEventListener("click", function(){
+  document.getElementById("scan-error").classList.add("hidden");
+  document.getElementById("scan-manual-input").value = "";
+  openModal("modal-scan");
+});
+document.getElementById("btn-goto-final").addEventListener("click", function(){
+  renderFinal();
+  showScreen("screen-final");
+});
+
+/* ===================== ③ 部屋別謎解き画面 ===================== */
+let currentPuzzleRoom = null;
+
+function openPuzzle(roomNum){
+  const room = CONFIG.rooms[roomNum];
+  if(!room) return;
+  currentPuzzleRoom = roomNum;
+  document.getElementById("puzzle-title").textContent = room.title;
+  document.getElementById("puzzle-answer-input").value = "";
+  document.getElementById("puzzle-error").classList.add("hidden");
+  renderPuzzleView();
+  showScreen("screen-puzzle");
+}
+function renderPuzzleView(){
+  const room = CONFIG.rooms[currentPuzzleRoom];
+  const player = state.currentPlayer;
+  document.getElementById("puzzle-clue-label").textContent = "Player " + player + " の情報";
+  document.getElementById("puzzle-clue-text").textContent = room.clues[player];
+
+  const isAnswerer = String(player) === "4";
+  document.getElementById("puzzle-answer-block").classList.toggle("hidden", !isAnswerer);
+  document.getElementById("puzzle-note-nonp4").classList.toggle("hidden", isAnswerer);
+
+  const teamState = state.teams[state.currentTeam];
+  const solved = teamState.solvedRooms.indexOf(currentPuzzleRoom) !== -1;
+  if(solved){
+    document.getElementById("puzzle-clue-text").textContent += "\n\n（このルームは解決済みです。獲得キーワード: " + teamState.keywords[currentPuzzleRoom] + "）";
+  }
+}
+document.getElementById("btn-puzzle-back").addEventListener("click", function(){
+  renderDashboard();
+  showScreen("screen-dashboard");
+});
+document.getElementById("btn-puzzle-submit").addEventListener("click", function(){
+  const room = CONFIG.rooms[currentPuzzleRoom];
+  const input = document.getElementById("puzzle-answer-input").value;
+  const card = document.getElementById("puzzle-answer-input").closest(".card");
+  if(normalize(input) === normalize(room.answer)){
+    document.getElementById("puzzle-error").classList.add("hidden");
+    markRoomSolved(currentPuzzleRoom);
+    playConfetti();
+    showKeywordModal(room.keyword, "「" + room.title + "」をクリアしました！");
+  } else {
+    document.getElementById("puzzle-error").classList.remove("hidden");
+    if(navigator.vibrate){ try{ navigator.vibrate([80,40,80]); }catch(e){} }
+    card.classList.remove("shake"); void card.offsetWidth; card.classList.add("shake");
+  }
+});
+function markRoomSolved(roomNum){
+  const teamState = state.teams[state.currentTeam];
+  if(teamState.solvedRooms.indexOf(roomNum) === -1){
+    teamState.solvedRooms.push(roomNum);
+    teamState.keywords[roomNum] = CONFIG.rooms[roomNum].keyword;
+  }
+  saveState();
+}
+function showKeywordModal(word, sub){
+  document.getElementById("keyword-modal-word").textContent = word;
+  document.getElementById("keyword-modal-sub").textContent = sub;
+  openModal("modal-keyword");
+}
+document.getElementById("btn-keyword-modal-close").addEventListener("click", function(){
+  closeModal("modal-keyword");
+  renderDashboard();
+  showScreen("screen-dashboard");
+});
+
+/* ===================== ④ 最終問題 ===================== */
+function renderFinal(){
+  const teamState = state.teams[state.currentTeam];
+  const recap = document.getElementById("final-keyword-recap");
+  recap.innerHTML = "";
+  ROOM_ORDER.forEach(function(r){
+    const tile = document.createElement("div");
+    tile.className = "tile p-3 flex items-center justify-between";
+    tile.innerHTML = '<div class="text-xs text-white/50">部屋' + r + '</div><div class="font-black tracking-widest gold-text">' + (teamState.keywords[r] || "???") + '</div>';
+    recap.appendChild(tile);
+  });
+  document.getElementById("final-answer-input").value = "";
+  document.getElementById("final-error").classList.add("hidden");
+}
+document.getElementById("btn-final-back").addEventListener("click", function(){
+  renderDashboard();
+  showScreen("screen-dashboard");
+});
+document.getElementById("btn-final-submit").addEventListener("click", function(){
+  const input = document.getElementById("final-answer-input").value;
+  if(normalize(input) === normalize(getFinalPhrase())){
+    const teamState = state.teams[state.currentTeam];
+    if(!teamState.endTime) teamState.endTime = Date.now();
+    saveState();
+    renderComplete();
+    playConfetti(1.6);
+    showScreen("screen-complete");
+  } else {
+    document.getElementById("final-error").classList.remove("hidden");
+    if(navigator.vibrate){ try{ navigator.vibrate([80,40,80]); }catch(e){} }
+  }
+});
+
+/* ===================== ⑤ ゴール画面 ===================== */
+function renderComplete(){
+  const teamState = state.teams[state.currentTeam];
+  const elapsed = (teamState.endTime || Date.now()) - (teamState.startTime || Date.now());
+  document.getElementById("complete-time").textContent = formatJP(elapsed);
+  document.getElementById("complete-phrase").textContent = getFinalPhrase();
+}
+document.getElementById("btn-complete-back").addEventListener("click", function(){
+  renderDashboard();
+  showScreen("screen-dashboard");
+});
+
+/* ===================== QRコードスキャン ===================== */
+let mediaStream = null;
+let scanRafId = null;
+let barcodeDetector = null;
+
+document.getElementById("btn-start-camera").addEventListener("click", startCamera);
+
+async function startCamera(){
+  const statusEl = document.getElementById("scan-camera-status");
+  if(!("BarcodeDetector" in window)){
+    statusEl.textContent = "この端末/ブラウザはカメラ自動読取に対応していません。下のコード入力をご利用ください。";
+    return;
+  }
+  try{
+    barcodeDetector = new BarcodeDetector({ formats: ["qr_code"] });
+    mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    const video = document.getElementById("scan-video");
+    video.srcObject = mediaStream;
+    await video.play();
+    document.getElementById("scan-camera-wrap").classList.remove("hidden");
+    statusEl.textContent = "QRコードを枠内に映してください。";
+    scanLoop(video);
+  }catch(e){
+    statusEl.textContent = "カメラを起動できませんでした。下のコード入力をご利用ください。";
+  }
+}
+function scanLoop(video){
+  scanRafId = requestAnimationFrame(function(){ scanLoop(video); });
+  if(!barcodeDetector) return;
+  barcodeDetector.detect(video).then(function(codes){
+    if(codes && codes.length > 0){ handleScanValue(codes[0].rawValue); }
+  }).catch(function(){});
+}
+function stopCamera(){
+  if(scanRafId) cancelAnimationFrame(scanRafId);
+  scanRafId = null;
+  if(mediaStream){
+    mediaStream.getTracks().forEach(function(t){ t.stop(); });
+    mediaStream = null;
+  }
+  const wrap = document.getElementById("scan-camera-wrap");
+  if(wrap) wrap.classList.add("hidden");
+}
+document.getElementById("btn-scan-manual-submit").addEventListener("click", function(){
+  handleScanValue(document.getElementById("scan-manual-input").value);
+});
+function handleScanValue(raw){
+  const roomId = extractRoomId(raw);
+  const errEl = document.getElementById("scan-error");
+  if(!roomId){
+    errEl.textContent = "無効なコードです。もう一度確認してください。";
+    errEl.classList.remove("hidden");
+    return;
+  }
+  errEl.classList.add("hidden");
+  stopCamera();
+  closeModal("modal-scan");
+  openPuzzle(roomId);
+}
+function extractRoomId(raw){
+  if(!raw) return null;
+  const value = String(raw).trim();
+  for(const r of ROOM_ORDER){
+    if(value === String(r)) return r;
+  }
+  try{
+    const url = new URL(value);
+    const param = url.searchParams.get("room");
+    if(param && ROOM_ORDER.indexOf(Number(param)) !== -1) return Number(param);
+  }catch(e){ /* not a URL */ }
+  const match = value.match(/room=(\d+)/);
+  if(match && ROOM_ORDER.indexOf(Number(match[1])) !== -1) return Number(match[1]);
+  return null;
+}
+
+/* ===================== 紙吹雪アニメーション ===================== */
+const confettiCanvas = document.getElementById("confetti-canvas");
+const cctx = confettiCanvas.getContext("2d");
+function resizeCanvas(){ confettiCanvas.width = window.innerWidth; confettiCanvas.height = window.innerHeight; }
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+const CONFETTI_COLORS = ["#D4AF37","#F4E4BC","#FFFFFF","#B8860B"];
+let confettiTimer = null;
+function playConfetti(scale){
+  scale = scale || 1;
+  const count = Math.floor(90 * scale);
+  const particles = [];
+  for(let i=0;i<count;i++){
+    particles.push({
+      x: Math.random()*confettiCanvas.width, y: -20 - Math.random()*200,
+      w: 6+Math.random()*6, h: 8+Math.random()*10,
+      color: CONFETTI_COLORS[Math.floor(Math.random()*CONFETTI_COLORS.length)],
+      speed: 2+Math.random()*3.5, drift: (Math.random()-0.5)*2.5,
+      rot: Math.random()*Math.PI, rotSpeed: (Math.random()-0.5)*0.25
+    });
+  }
+  const duration = 2600 * scale;
+  const start = performance.now();
+  if(confettiTimer) cancelAnimationFrame(confettiTimer);
+  function frame(now){
+    cctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+    particles.forEach(function(p){
+      p.y += p.speed; p.x += p.drift; p.rot += p.rotSpeed;
+      cctx.save(); cctx.translate(p.x,p.y); cctx.rotate(p.rot);
+      cctx.fillStyle = p.color; cctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      cctx.restore();
+    });
+    if(now - start < duration){ confettiTimer = requestAnimationFrame(frame); }
+    else { cctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height); }
+  }
+  confettiTimer = requestAnimationFrame(frame);
+}
+
+/* ===================== ADMIN VIEW ===================== */
+let logoTapCount = 0, logoTapTimer = null;
+document.getElementById("logo-tap").addEventListener("click", function(){
+  logoTapCount++;
+  if(logoTapTimer) clearTimeout(logoTapTimer);
+  logoTapTimer = setTimeout(function(){ logoTapCount = 0; }, 1500);
+  if(logoTapCount >= 5){ logoTapCount = 0; enterAdmin(); }
+});
+function enterAdmin(){
+  renderAdmin();
+  showScreen("screen-admin");
+}
+document.getElementById("btn-admin-back").addEventListener("click", function(){
+  if(state.currentTeam && state.currentPlayer){ renderDashboard(); showScreen("screen-dashboard"); }
+  else { showScreen("screen-login"); }
+});
+
+function renderAdmin(){
+  renderAdminMonitor();
+  renderAdminRoomForms();
+  renderAdminUrlList();
+}
+function renderAdminMonitor(){
+  const body = document.getElementById("admin-monitor-body");
+  body.innerHTML = "";
+  TEAM_ORDER.forEach(function(t){
+    const ts = state.teams[t];
+    const solvedCount = ts.solvedRooms.length;
+    const statusLabel = ts.endTime ? "完了" : (ts.startTime ? "進行中" : "未開始");
+    const elapsed = ts.startTime ? formatMMSS((ts.endTime || Date.now()) - ts.startTime) : "-";
+    const clearTime = ts.endTime ? formatJP(ts.endTime - ts.startTime) : "-";
+    const roomCell = function(r){
+      return ts.solvedRooms.indexOf(r) !== -1
+        ? '<span class="gold-text font-bold">✓</span>'
+        : '<span class="text-white/25">–</span>';
+    };
+    const keywordsText = ROOM_ORDER.map(function(r){ return ts.keywords[r] || "???"; }).join(" / ");
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      "<td class='font-bold'>Team " + t + "</td>" +
+      "<td>" + statusLabel + "</td>" +
+      "<td class='timer-digit'>" + elapsed + "</td>" +
+      "<td>" + roomCell(1) + "</td>" +
+      "<td>" + roomCell(2) + "</td>" +
+      "<td>" + roomCell(3) + "</td>" +
+      "<td class='text-left'>" + keywordsText + "</td>" +
+      "<td>" + clearTime + "</td>";
+    body.appendChild(tr);
+  });
+}
+function renderAdminRoomForms(){
+  const wrap = document.getElementById("admin-room-forms");
+  wrap.innerHTML = "";
+  ROOM_ORDER.forEach(function(r){
+    const room = CONFIG.rooms[r];
+    const box = document.createElement("div");
+    box.className = "card p-4";
+    box.innerHTML =
+      '<div class="font-bold gold-text mb-3">部屋' + r + '</div>' +
+      '<label class="field-label">タイトル</label>' +
+      '<input type="text" class="mb-3 admin-room-title" data-room="' + r + '" value="' + escapeHtml(room.title) + '">' +
+      [1,2,3,4].map(function(p){
+        return '<label class="field-label">Player ' + p + ' の情報</label>' +
+          '<textarea rows="2" class="mb-3 admin-room-clue" data-room="' + r + '" data-player="' + p + '">' + escapeHtml(room.clues[p]) + '</textarea>';
+      }).join("") +
+      '<label class="field-label">正解文字列</label>' +
+      '<input type="text" class="mb-3 admin-room-answer" data-room="' + r + '" value="' + escapeHtml(room.answer) + '">' +
+      '<label class="field-label">獲得キーワード</label>' +
+      '<input type="text" class="mb-3 admin-room-keyword" data-room="' + r + '" value="' + escapeHtml(room.keyword) + '">' +
+      '<button class="btn-gold w-full rounded-lg py-2 admin-room-save" data-room="' + r + '">この部屋を保存</button>';
+    wrap.appendChild(box);
+  });
+  document.querySelectorAll(".admin-room-save").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      const r = Number(btn.getAttribute("data-room"));
+      const title = document.querySelector('.admin-room-title[data-room="' + r + '"]').value;
+      const answer = document.querySelector('.admin-room-answer[data-room="' + r + '"]').value;
+      const keyword = document.querySelector('.admin-room-keyword[data-room="' + r + '"]').value;
+      const clues = {};
+      [1,2,3,4].forEach(function(p){
+        clues[p] = document.querySelector('.admin-room-clue[data-room="' + r + '"][data-player="' + p + '"]').value;
+      });
+      CONFIG.rooms[r] = { title: title, clues: clues, answer: answer, keyword: keyword };
+      saveConfig();
+      renderAdmin();
+      if(state.currentTeam) renderDashboard();
+    });
+  });
+}
+function escapeHtml(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+document.getElementById("btn-admin-reset-config").addEventListener("click", function(){
+  if(!confirm("部屋の設定（問題文・正解・キーワード）をすべてデフォルトに戻します。よろしいですか？")) return;
+  CONFIG = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+  saveConfig();
+  renderAdmin();
+});
+document.getElementById("btn-admin-force-clear").addEventListener("click", function(){
+  const t = document.getElementById("admin-force-team").value;
+  const r = Number(document.getElementById("admin-force-room").value);
+  const ts = state.teams[t];
+  if(!ts.startTime) ts.startTime = Date.now();
+  if(ts.solvedRooms.indexOf(r) === -1) ts.solvedRooms.push(r);
+  ts.keywords[r] = CONFIG.rooms[r].keyword;
+  saveState();
+  renderAdmin();
+  if(state.currentTeam === t) renderDashboard();
+});
+document.getElementById("btn-admin-reset-all").addEventListener("click", function(){
+  if(!confirm("全チームの進捗・タイマーをリセットします。よろしいですか？")) return;
+  const keepTeam = state.currentTeam, keepPlayer = state.currentPlayer;
+  state = defaultState();
+  state.currentTeam = keepTeam;
+  state.currentPlayer = keepPlayer;
+  saveState();
+  renderAdmin();
+  if(state.currentTeam) renderDashboard();
+});
+function renderAdminUrlList(){
+  const base = window.location.origin + window.location.pathname;
+  const lines = [];
+  lines.push("## クイックログインURL（チーム別・部屋1へ直接ログイン）");
+  TEAM_ORDER.forEach(function(t){
+    [1,2,3,4].forEach(function(p){
+      lines.push(base + "?team=" + t + "&player=" + p);
+    });
+  });
+  lines.push("");
+  lines.push("## 部屋プレビューURL（Team A固定・部屋別×プレイヤー別）");
+  ROOM_ORDER.forEach(function(r){
+    [1,2,3,4].forEach(function(p){
+      lines.push(base + "?team=A&player=" + p + "&room=" + r);
+    });
+  });
+  lines.push("");
+  lines.push("## 管理者パネル");
+  lines.push(base + "?mode=admin");
+  document.getElementById("admin-url-list").value = lines.join("\n");
+}
+document.getElementById("btn-admin-copy-urls").addEventListener("click", function(){
+  const ta = document.getElementById("admin-url-list");
+  const showStatus = function(){
+    const st = document.getElementById("admin-copy-status");
+    st.classList.remove("hidden");
+    setTimeout(function(){ st.classList.add("hidden"); }, 1800);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(ta.value).then(showStatus).catch(function(){
+      ta.select(); document.execCommand("copy"); showStatus();
+    });
+  } else {
+    ta.select(); document.execCommand("copy"); showStatus();
+  }
+});
+
+/* ===================== 初期化 ===================== */
+function init(){
+  const params = new URLSearchParams(window.location.search);
+  const mode = params.get("mode");
+  const teamParam = params.get("team");
+  const playerParam = params.get("player");
+  const roomParam = params.get("room");
+
+  if(mode === "admin"){ enterAdmin(); return; }
+
+  if(teamParam && playerParam && TEAM_ORDER.indexOf(teamParam.toUpperCase()) !== -1){
+    loginAs(teamParam.toUpperCase(), playerParam);
+  }
+
+  if(!state.currentTeam || !state.currentPlayer){
+    showScreen("screen-login");
+    return;
+  }
+
+  if(roomParam && ROOM_ORDER.indexOf(Number(roomParam)) !== -1){
+    renderDashboard();
+    openPuzzle(Number(roomParam));
+    return;
+  }
+  renderDashboard();
+  showScreen("screen-dashboard");
+}
+init();
+
+})();
+</script>
+</body>
+</html>
