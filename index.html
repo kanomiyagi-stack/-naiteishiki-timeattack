@@ -331,7 +331,8 @@ const DEFAULT_CONFIG = {
       answer: "23",
       keyword: "CAN CHANGE"
     }
-  }
+  },
+  version: 2
 };
 /* DEFAULT_CONFIG_END */
 
@@ -342,6 +343,7 @@ function loadConfig(){
     if(!raw) return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
     const parsed = JSON.parse(raw);
     if(!parsed.rooms) return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+    if(parsed.version !== DEFAULT_CONFIG.version) return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
     return parsed;
   }catch(e){
     return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
